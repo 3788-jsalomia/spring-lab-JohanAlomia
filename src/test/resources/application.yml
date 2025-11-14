@@ -5,16 +5,16 @@ spring:
     username: sa
     password:
 
-    jpa:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
       hibernate:
-        ddl-auto: update
-      propierties:
-        hibernet:
-          dialect: org.hibernate.dialect.H2Dialect
+        dialect: org.hibernate.dialect.H2Dialect
 
-    sql:
-      init:
-        mode: never
+  sql:
+    init:
+      mode: never
 
 logging:
   level:
