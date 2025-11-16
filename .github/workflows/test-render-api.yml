@@ -1,0 +1,16 @@
+name: Test Render API
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ejecutar prueba con la API de Render
+        run: |
+          echo "Probando API de Render..."
+          curl -X GET https://api.render.com/v1/services \
+            -H "Accept: application/json" \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}"
