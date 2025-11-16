@@ -28,10 +28,10 @@ public class StudentRepositoryTest {
 
         respository.save(s);
 
-        var result = respository.findByEmail("test@example.com");
+        var result = respository.findByEmail("test@example.com")
 
         assertThat(result).isPresent();
-        assertThat((result).get().getFullName()).isEqualTo("Test User")
+        assertThat((result).get().getFullName()).isEqualTo("Test User");
 
     }
 }
