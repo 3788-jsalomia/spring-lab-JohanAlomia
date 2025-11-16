@@ -1,0 +1,47 @@
+name: Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      serviceId:
+        description: "ID del servicio en Render"
+        required: true
+      failedDeployId:
+        description: "ID del despliegue fallido"
+        required: true
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Mostrar información
+        run: |
+          echo "Intentando rollback del deploy fallido: ${{ github.event.inputs.failedDeployId }}"
+          echo "Servicio: ${{ github.event.inputs.serviceId }}"
+
+      - name: Obtener lista de deploys exitosos
+        id: get_deploys
+        run: |
+          curl -s -X GET \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+            "https://api.render.com/v1/services/${{ github.event.inputs.serviceId }}/deploys?limit=20" \
+            > deploys.json
+
+      - name: Buscar último deploy exitoso
+        id: search_success
+        run: |
+          SUCCESS_ID=$(jq -r '.[] | select(.status=="live") | .id' deploys.json | head -n 1)
+          if [ -z "$SUCCESS_ID" ]; then
+            echo "No se encontró un deploy exitoso."
+            exit 1
+          fi
+          echo "id=$SUCCESS_ID" >> $GITHUB_OUTPUT
+
+      - name: Ejecutar rollback
+        run: |
+          curl -X POST \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"deployId\": \"${{ steps.search_success.outputs.id }}\"}" \
+            "https://api.render.com/v1/services/${{ github.event.inputs.serviceId }}/deploys"

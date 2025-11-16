@@ -26,7 +26,7 @@ public class StudentRepositoryTest {
         s.setBirthDate(LocalDate.of(2000,10,10));
         s.setActive(true);
 
-        respository.save(s)
+        respository.save(s);
 
         var result = respository.findByEmail("test@example.com");
 

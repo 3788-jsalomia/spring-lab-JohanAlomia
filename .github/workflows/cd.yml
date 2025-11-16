@@ -1,16 +1,49 @@
-name: CD - Deploy to Render
+name: CD
 
 on:
-  push:
-    branches:
-      - main
+  workflow_run:
+    workflows: ["CI"]
+    types: [ completed ]
 
 jobs:
   deploy:
-    needs: ci   # <<< Esto indica que primero debe ejecutarse CI y pasar correctamente
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
-      - name: Trigger Render Deploy Hook
+      - name: Inyectar versión de despliegue
+        run: echo "APP_VERSION=${GITHUB_SHA}" >> $GITHUB_ENV
+
+      - name: Ejecutar despliegue en Render
+        id: deploy_step
+        continue-on-error: true
         run: |
-          curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
+          RESPONSE=$(curl -s -o output.json -w "%{http_code}" "$RENDER_DEPLOY_HOOK")
+          echo "HTTP_CODE=$RESPONSE" >> $GITHUB_OUTPUT
+
+      - name: Verificar si falló el deploy
+        if: ${{ steps.deploy_step.outputs.HTTP_CODE != '200' }}
+        run: echo "El deploy falló. Se iniciará rollback."
+
+      - name: Ejecutar rollback
+        if: ${{ steps.deploy_step.outputs.HTTP_CODE != '200' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const serviceId = process.env.RENDER_SERVICE_ID;
+            const failedDeployId = "deploy_failed";
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: "rollback.yml",
+              ref: "main",
+              inputs: {
+                serviceId,
+                failedDeployId
+              }
+            });
+        env:
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+
+    env:
+      RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}

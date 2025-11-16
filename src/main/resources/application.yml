@@ -29,3 +29,7 @@ spring:
 #Configurar el servidor embebido (Tomcat)
 server:
   port: 8080
+
+#Nuevo linea para usar version automatica en Render
+app:
+  version: ${APP_VERSION:local}
